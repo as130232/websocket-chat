@@ -1,0 +1,59 @@
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <title>Web sockets test</title>
+    <style type="text/css">
+        .container {
+            font-family: "Courier New";
+            width: 680px;
+            height: 300px;
+            overflow: auto;
+            border: 1px solid black;
+        }
+        .LockOff {
+            display: none;
+            visibility: hidden;
+        }
+        .LockOn {
+            display: block;
+            visibility: visible;
+            position: absolute;
+            z-index: 999;
+            top: 0px;
+            left: 0px;
+            width: 1024%;
+            height: 768%;
+            background-color: #ccc;
+            text-align: center;
+            padding-top: 20%;
+            filter: alpha(opacity=75);
+            opacity: 0.75;
+        }
+    </style>
+    <script src="./js/jquery-3.1.1.js" type="text/javascript"></script>
+    <script src="js/app.js"></script>
+</head>
+<body>
+<div id="skm_LockPane" class="LockOff"></div>
+<form id="form1" runat="server">
+    <h1>Online Chatroom</h1>
+    <br/>
+    <div>
+		按下進入按鈕，會通過WebSocket發起一個到聊天瀏覽器的連接。
+    </div>
+    	Room Number：<input type="text" id="roomId" value="1"/>
+    	Username：<input type="text" id="username" />
+		<button id='ToggleConnection' type="button" onclick='ToggleConnectionClicked();'>進入聊天室</button>
+    <br/>
+    <br/>
+    <div id='LogContainer' class='container'></div>
+    <br/>
+    <div id='SendDataContainer'>
+    	To：<input type="text" id="DataToSendWho" size="20" value="all"/>
+    	Message：<input type="text" id="DataToSend" size="40" placeholder="input your message"/>
+        <button id='SendData' type="button" onclick='SendDataClicked();'>Send</button>
+    </div>
+    <br/>
+</form>
+</body>
+</html>
