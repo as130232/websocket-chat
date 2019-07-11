@@ -124,3 +124,28 @@ $(document).ready(function () {
         }
     })
 });
+
+
+function testUserApiClicked(){
+	var param = {
+	  "ip": "string",
+	  "name": "user1",
+	  "password": "123456"
+	};
+	let result = [];
+    $.ajax({
+        url: "http://172.28.10.148/user/login",
+        type: "POST",
+		dataType: "json",
+        data: param,
+        async: false,
+        success: function (data) {
+            result = data.result;
+        },
+        error: function () {
+            alert("user login failed");
+        }
+     });
+	console.log(result);
+
+}
