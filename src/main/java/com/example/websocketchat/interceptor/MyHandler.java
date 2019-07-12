@@ -3,6 +3,7 @@ package com.example.websocketchat.interceptor;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -19,66 +20,77 @@ import com.example.websocketchat.model.Message;
 public class MyHandler implements WebSocketHandler {
 
 	// 用來保存用戶、房間、session三者。使用雙層Map實現對應關係。
-	private static final Map<String, Map<String, WebSocketSession>> sUserMap = new HashMap<>(3);
+	private static final Map<String, Map<String, WebSocketSession>> roomAndUsersMap = new HashMap<>(3);
 
 	/**
-	 * 成功建立連接(加入房間)後，會調用此方法，在這個節點上，向其他用戶發送有用戶加入的通知消息
-	 * 
+	 * 成功建立連接(加入房間)後，會調用此方法
 	 * @author charles
 	 * @date 2019年7月10日 上午10:24:45
 	 */
 	@Override
-	public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+	public void afterConnectionEstablished(WebSocketSession webSocketSession) throws Exception {
 		System.out.println("成功建立連接");
-		String path = session.getUri().getPath();
-		System.out.println("path:" + path);
-		String INFO = path.split("INFO=")[1];
-		if (INFO != null && INFO.length() > 0) {
-			JSONObject jsonObject = new JSONObject(INFO);
-			String command = jsonObject.getString("command");
-			String roomId = jsonObject.getString("roomId");
-			if (command != null && MessageKey.ENTER_COMMAND.equals(command)) {
-				Map<String, WebSocketSession> mapSession = sUserMap.get(roomId);
-				if (mapSession == null) {
-					mapSession = new HashMap<>(3);
-					sUserMap.put(roomId, mapSession);
-				}
-				mapSession.put(jsonObject.getString("name"), session);
-				session.sendMessage(new TextMessage("當前房間線上人數" + mapSession.size() + "人"));
-				System.out.println(session);
-			}
+		Map<String, Object> map = webSocketSession.getAttributes();
+		String username = (String) map.get(MessageKey.KEY_USERNAME);
+    	String roomId = (String) map.get(MessageKey.KEY_ROOM_ID);
+    	Map<String, WebSocketSession> mapSession = roomAndUsersMap.get(roomId);
+    	if(mapSession == null) {
+			mapSession = new HashMap<>(3);
+			roomAndUsersMap.put(roomId, mapSession);
+		}else {
+			//檢查該房間是否已存在該用戶
+//			WebSocketSession roomAndUsersSession = mapSession.get(name);
+//			if(roomAndUsersSession != null) {
+//				webSocketSession.sendMessage(new TextMessage("當前房間已存在該用戶:" + name));
+//				this.afterConnectionClosed(webSocketSession, null);
+//				return;
+//			}
 		}
-		System.out.println("當前房間線上人數：" + sUserMap.size());
+    	mapSession.put(username, webSocketSession);
+    	webSocketSession.sendMessage(new TextMessage("當前房間線上人數" + mapSession.size() + "人"));
+		System.out.println("當前房間線上人數：" + roomAndUsersMap.size());
 	}
 
+	/**
+	 * 處理訊息，當前端呼叫ws.send()時會調用此方法
+	 * @author charles
+	 * @date 2019年7月11日 下午3:07:36
+	 */
 	@Override
 	public void handleMessage(WebSocketSession webSocketSession, WebSocketMessage<?> webSocketMessage) {
 		try {
-			JSONObject jsonobject = new JSONObject(webSocketMessage.getPayload().toString());
+			String payload = webSocketMessage.getPayload().toString();
+			JSONObject jsonobject = new JSONObject(payload);
 			Message message = new Message(jsonobject.toString());
-			System.out.println(message.toJson() + ":來自"
-					+ webSocketSession.getAttributes().get(MessageKey.KEY_WEBSOCKET_USERNAME) + "的消息");
-			if (message.getName() != null && message.getCommand() != null) {
+			String username = getUsernameFromSession(webSocketSession);
+			System.out.println("來自" + username + "的消息:" + message.toJson());
+			if (message.getCounterpart() != null && message.getCommand() != null) {
 				switch (message.getCommand()) {
 				case MessageKey.ENTER_COMMAND:
 					sendMessageToRoomUsers(message.getRoomId(),
-							new TextMessage("【" + getNameFromSession(webSocketSession) + "】加入了房間，歡迎！"));
+							new TextMessage("【" + username + "】加入了房間，歡迎！"));
 					break;
 				case MessageKey.MESSAGE_COMMAND:
-					if (message.getName().equals("-1")) {
+					//廣播所有房間所有用戶
+					if (message.getCounterpart().equals("-1")) {
 						this.sendMessageToAllUsers(
-								new TextMessage(getNameFromSession(webSocketSession) + "說：" + message.getInfo()));
-					} else if (message.getName().equals("all")) {
+								new TextMessage(username + "廣播：" + message.getInfo()));
+					} else if (message.getCounterpart().equals("all")) {
 						sendMessageToRoomUsers(message.getRoomId(),
-								new TextMessage(getNameFromSession(webSocketSession) + "說：" + message.getInfo()));
+								new TextMessage(username + "說：" + message.getInfo()));
 					} else {
-						sendMessageToUser(message.getRoomId(), message.getName(),
-								new TextMessage(getNameFromSession(webSocketSession) + "悄悄對你说：" + message.getInfo()));
+						sendMessageToUser(message.getRoomId(), username, message.getCounterpart(),
+								new TextMessage(username + "悄悄對" + message.getCounterpart() + "說：" + message.getInfo()));
 					}
+					break;
+				case MessageKey.USERS_OF_ROOM_COMMAND:
+					Map<String, WebSocketSession> usersMap = roomAndUsersMap.get(message.getRoomId());
+					Set<String> users = usersMap.keySet();
+					sendMessageToRoomUsers(message.getRoomId(), new TextMessage("頻道:" + message.getRoomId() + "，目前用戶共有:" + users));
 					break;
 				case MessageKey.LEAVE_COMMAND:
 					sendMessageToRoomUsers(message.getRoomId(),
-							new TextMessage("【" + getNameFromSession(webSocketSession) + "】離開了房間。"));
+							new TextMessage("【" + getUsernameFromSession(webSocketSession) + "】離開了房間。"));
 					break;
 				default:
 					break;
@@ -95,19 +107,25 @@ public class MyHandler implements WebSocketHandler {
 	 * @author charles
 	 * @date 2019年7月10日 上午10:24:45
 	 */
-	public boolean sendMessageToUser(String roomId, String name, TextMessage message) {
-		if (roomId == null || name == null)
+	public boolean sendMessageToUser(String roomId, String username, String counterpart, TextMessage message) {
+		if (roomId == null || counterpart == null)
 			return false; // 沒有給房間號
-		if (sUserMap.get(roomId) == null)
+		if (roomAndUsersMap.get(roomId) == null)
 			return false; // 該房間號不存在
-		WebSocketSession session = sUserMap.get(roomId).get(name);
-		if (!session.isOpen())
-			return false;
-		try {
-			session.sendMessage(message);
-		} catch (IOException e) {
-			e.printStackTrace();
-			return false;
+		//除了密頻的對象要發送外，本身發處訊息的用戶也要發送
+		Set<String> names = new HashSet<>();
+		names.add(username);
+		names.add(counterpart);
+		for(String name:names) {
+			WebSocketSession session = roomAndUsersMap.get(roomId).get(name);
+			if (!session.isOpen())
+				return false;
+			try {
+				session.sendMessage(message);
+			} catch (IOException e) {
+				e.printStackTrace();
+				return false;
+			}
 		}
 		return true;
 	}
@@ -121,11 +139,11 @@ public class MyHandler implements WebSocketHandler {
 	public boolean sendMessageToRoomUsers(String roomId, TextMessage message) {
 		if (roomId == null)
 			return false;
-		if (sUserMap.get(roomId) == null)
+		if (roomAndUsersMap.get(roomId) == null)
 			return false;
 		boolean allSendSuccess = true;
-		System.out.println("sUserMap:" + sUserMap);
-		Collection<WebSocketSession> sessions = sUserMap.get(roomId).values();
+		System.out.println("sUserMap:" + roomAndUsersMap);
+		Collection<WebSocketSession> sessions = roomAndUsersMap.get(roomId).values();
 		for (WebSocketSession session : sessions) {
 			try {
 				if (session.isOpen()) {
@@ -147,9 +165,9 @@ public class MyHandler implements WebSocketHandler {
 	 */
 	public boolean sendMessageToAllUsers(TextMessage message) {
 		boolean allSendSuccess = true;
-		Collection<String> roomIds = sUserMap.keySet();
+		Collection<String> roomIds = roomAndUsersMap.keySet();
 		for (String roomId : roomIds) {
-			Collection<WebSocketSession> sessions = sUserMap.get(roomId).values();
+			Collection<WebSocketSession> sessions = roomAndUsersMap.get(roomId).values();
 			for (WebSocketSession session : sessions) {
 				try {
 					if (session.isOpen()) {
@@ -173,9 +191,9 @@ public class MyHandler implements WebSocketHandler {
 	@Override
 	public void afterConnectionClosed(WebSocketSession webSocketSession, CloseStatus closeStatus) {
 		System.out.println("連接已關閉：" + closeStatus);
-		Map<String, WebSocketSession> map = sUserMap.get(getRoomIdFromSession(webSocketSession));
+		Map<String, WebSocketSession> map = roomAndUsersMap.get(getRoomIdFromSession(webSocketSession));
 		if (map != null) {
-			map.remove(getNameFromSession(webSocketSession));
+			map.remove(getUsernameFromSession(webSocketSession));
 		}
 	}
 
@@ -185,9 +203,9 @@ public class MyHandler implements WebSocketHandler {
 		if (webSocketSession.isOpen()) {
 			webSocketSession.close();
 		}
-		Map<String, WebSocketSession> map = sUserMap.get(getRoomIdFromSession(webSocketSession));
+		Map<String, WebSocketSession> map = roomAndUsersMap.get(getRoomIdFromSession(webSocketSession));
 		if (map != null) {
-			map.remove(getNameFromSession(webSocketSession));
+			map.remove(getUsernameFromSession(webSocketSession));
 		}
 	}
 
@@ -197,22 +215,22 @@ public class MyHandler implements WebSocketHandler {
 	}
 
 	/**
-	 * 獲取用戶名稱
+	 * 取得用戶名稱
 	 *
 	 * @author charles
 	 * @date 2019年7月10日 上午10:50:04
 	 */
-	private String getNameFromSession(WebSocketSession session) {
+	private String getUsernameFromSession(WebSocketSession session) {
 		try {
-			String name = (String) session.getAttributes().get(MessageKey.KEY_WEBSOCKET_USERNAME);
-			return name;
+			String username = (String) session.getAttributes().get(MessageKey.KEY_USERNAME);
+			return username;
 		} catch (Exception e) {
 			return null;
 		}
 	}
 
 	/**
-	 * 獲取房間號
+	 * 取得房間號
 	 *
 	 * @author charles
 	 * @date 2019年7月10日 上午10:50:04

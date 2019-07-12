@@ -3,6 +3,7 @@ var SocketCreated = false;
 var isUserloggedout = false;
 var groom;
 var gname;
+var users = [];
 function lockOn(str){
     var lock = document.getElementById('skm_LockPane');
     if (lock)
@@ -16,6 +17,7 @@ function lockOff(){
 }
 
 function ToggleConnectionClicked() {
+	var ip = '127.0.0.1';
     if (SocketCreated && (ws.readyState == 0 || ws.readyState == 1)) {
         lockOn("離開聊天室...");
         SocketCreated = false;
@@ -25,7 +27,6 @@ function ToggleConnectionClicked() {
         ws.send(msg);
         ws.close();
     } else if(document.getElementById("roomId").value == "") {
-        //Log("請输入房間號!");
 		alert("請输入房間號!");
     } else if(document.getElementById("username").value == "") {
         alert("請輸入名稱!");
@@ -37,11 +38,13 @@ function ToggleConnectionClicked() {
         try {
             if ("WebSocket" in window) {
                 ws = new WebSocket(
-                    'ws://localhost:8080/webSocket/INFO={"command":"enter","name":"'+ gname + '","roomId":"' + groom + '"}');
+                    //'ws://localhost:8080/webSocket/INFO={"command":"enter","name":"'+ gname + '","roomId":"' + groom + '"}');
+					'ws://' + ip + ':8080/webSocket?username=' + gname + '&roomId=' + groom);
             }
             else if("MozWebSocket" in window) {
                 ws = new MozWebSocket(
-                    'ws://localhost:8080/webSocket/INFO={"command":"enter","name":"'+ gname + '","roomId":"' + groom + '"}');
+				//'ws://localhost:8080/webSocket/INFO={"command":"enter","name":"'+ gname + '","roomId":"' + groom + '"}');
+				'ws://' + ip + ':8080/webSocket?username=' + gname + '&roomId=' + groom);
             }
             SocketCreated = true;
             isUserloggedout = false;
@@ -60,7 +63,7 @@ function WSonOpen() {
     lockOff();
     Log("連接已經建立。", "OK");
     $("#SendDataContainer").show();
-    var msg = JSON.stringify({'command':'enter', 'roomId':groom , 'name': "all",
+    var msg = JSON.stringify({'command':'enter', 'roomId':groom , 'counterpart': "all",
         'info': gname + "加入聊天室"})
     ws.send(msg);
 };
@@ -80,12 +83,17 @@ function WSonError() {
 };
 function SendDataClicked() {
     if (document.getElementById("DataToSend").value.trim() != "") {
-        var msg = JSON.stringify({'command':'message', 'roomId':groom , 'name': document.getElementById("DataToSendWho").value,
+        var msg = JSON.stringify({'command':'message', 'roomId':groom , 'counterpart': document.getElementById("DataToSendWho").value,
             'info':document.getElementById("DataToSend").value})
         ws.send(msg);
         document.getElementById("DataToSend").value = "";
     }
 };
+function UsersOfRoomClicked(){
+	var msg = JSON.stringify({'command':'usersOfRoom', 'roomId':groom , 'counterpart': "",
+        'info': ""})
+    ws.send(msg);
+}	
 function Log(Text, MessageType) {
     if (MessageType == "OK") Text = "<span style='color: green;'>" + Text + "</span>";
     if (MessageType == "ERROR") Text = "<span style='color: red;'>" + Text + "</span>";
@@ -94,6 +102,11 @@ function Log(Text, MessageType) {
     var LogContainer = document.getElementById("LogContainer");
     LogContainer.scrollTop = LogContainer.scrollHeight;
 };
+
+$('#UsersOfRoomSelect').focus(function(){
+	alert('hi');
+});
+
 $(document).ready(function () {
     $("#SendDataContainer").hide();
     var WebSocketsExist = true;

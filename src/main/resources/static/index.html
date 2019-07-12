@@ -45,15 +45,20 @@
     	Username：<input type="text" id="username" />
 		<button id='ToggleConnection' type="button" onclick='ToggleConnectionClicked();'>進入聊天室</button>
     <br/>
+	<button id='usersOfRoom' type="button" onclick='UsersOfRoomClicked();'>查詢該房間用戶</button>
     <br/>
     <div id='LogContainer' class='container'></div>
     <br/>
+	<br/>
     <div id='SendDataContainer'>
     	To：<input type="text" id="DataToSendWho" size="20" value="all"/>
     	Message：<input type="text" id="DataToSend" size="40" placeholder="input your message"/>
         <button id='SendData' type="button" onclick='SendDataClicked();'>Send</button>
     </div>
     <br/>
+	<select id="UsersOfRoomSelect">
+		<option value ="all">所有人</option>
+	</select>
 	<p>
 	<button id='testUserApi' type="button" onclick='testUserApiClicked();'>Test USER API</button>
 </form>

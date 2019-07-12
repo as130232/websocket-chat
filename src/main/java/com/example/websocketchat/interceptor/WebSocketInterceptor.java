@@ -31,28 +31,20 @@ public class WebSocketInterceptor implements HandshakeInterceptor {
 	    public boolean beforeHandshake(ServerHttpRequest serverHttpRequest, ServerHttpResponse serverHttpResponse, 
 	    		WebSocketHandler webSocketHandler, Map<String, Object> map) throws Exception {
 	        if (serverHttpRequest instanceof ServletServerHttpRequest) {
-	        	String path = serverHttpRequest.getURI().getPath();
-	            String INFO = path.split("INFO=")[1];
-	            System.out.println("path:" + path);
-	            if (INFO != null && INFO.length() > 0) {
-	                JSONObject jsonObject = new JSONObject(INFO);
-	                String command = jsonObject.getString("command");
-	                if (command != null && MessageKey.ENTER_COMMAND.equals(command)) {
-	                    System.out.println("Current session ID:="+ jsonObject.getString("name"));
-	                    ServletServerHttpRequest request = (ServletServerHttpRequest) serverHttpRequest;
-	                    HttpSession session = request.getServletRequest().getSession();
-	                    //記錄初次連接的用戶名稱及房間ID，此處的map即儲存在webSocketSession.getAttributes()中
-	                    map.put(MessageKey.KEY_WEBSOCKET_USERNAME, jsonObject.getString("name"));
-	                    map.put(MessageKey.KEY_ROOM_ID, jsonObject.getString("roomId"));
-	                    System.out.println("map:" + map);
-	                }
-	            }
+	        	String username = ((ServletServerHttpRequest) serverHttpRequest).getServletRequest().getParameter(MessageKey.KEY_USERNAME);
+	        	String roomId = ((ServletServerHttpRequest) serverHttpRequest).getServletRequest().getParameter(MessageKey.KEY_ROOM_ID);
+	        	if(username != null){
+	        		//ServletServerHttpRequest request = (ServletServerHttpRequest) serverHttpRequest;
+	        		//記錄初次連接的用戶名稱及房間ID，此處的map即儲存在webSocketSession.getAttributes()中，在afterConnectionEstablished可取得對應資訊
+	        		map.put(MessageKey.KEY_USERNAME, username);
+                    map.put(MessageKey.KEY_ROOM_ID, roomId);
+	        	}
 	        }
 	        return true;
 	    }
 
 	    @Override
 	    public void afterHandshake(ServerHttpRequest serverHttpRequest, ServerHttpResponse serverHttpResponse, WebSocketHandler webSocketHandler, Exception e) {
-	        System.out.println("Enter WebSocket's afterHandshake filter!");
+//	        System.out.println("Enter WebSocket's afterHandshake filter!");
 	    }
 }

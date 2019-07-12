@@ -13,7 +13,7 @@ import com.example.websocketchat.interceptor.WebSocketInterceptor;
 public class WebSocketConfig implements WebSocketConfigurer {
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(new MyHandler(), "/webSocket/{INFO}")
+        registry.addHandler(new MyHandler(), "/webSocket")
         		.setAllowedOrigins("*")
                 .addInterceptors(new WebSocketInterceptor());
     }
