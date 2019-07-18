@@ -56,6 +56,11 @@
             <artifactId>json</artifactId>
             <version>20180130</version>
         </dependency>
+<!--         後台為客戶端連結並發送訊息 -->
+<!--         <dependency> -->
+<!-- 			<groupId>org.springframework.boot</groupId> -->
+<!-- 			<artifactId>spring-boot-starter-websocket</artifactId> -->
+<!-- 		</dependency> -->
 	</dependencies>
 
 	<build>

@@ -19,11 +19,12 @@ import com.example.websocketchat.model.Message;
 
 public class MyHandler implements WebSocketHandler {
 
-	// 用來保存用戶、房間、session三者。使用雙層Map實現對應關係。
+	// 用來保存用戶、房間、session(用於回傳訊息)三者。使用雙層Map實現對應關係。
 	private static final Map<String, Map<String, WebSocketSession>> roomAndUsersMap = new HashMap<>(3);
 
 	/**
-	 * 成功建立連接(加入房間)後，會調用此方法
+	 * 成功建立連接(加入房間)後
+	 * 當呼叫ws.open時會調用此方法
 	 * @author charles
 	 * @date 2019年7月10日 上午10:24:45
 	 */
@@ -52,7 +53,8 @@ public class MyHandler implements WebSocketHandler {
 	}
 
 	/**
-	 * 處理訊息，當前端呼叫ws.send()時會調用此方法
+	 * 處理訊息
+	 * 當呼叫ws.send()時會調用此方法
 	 * @author charles
 	 * @date 2019年7月11日 下午3:07:36
 	 */
@@ -60,6 +62,9 @@ public class MyHandler implements WebSocketHandler {
 	public void handleMessage(WebSocketSession webSocketSession, WebSocketMessage<?> webSocketMessage) {
 		try {
 			String payload = webSocketMessage.getPayload().toString();
+			if(payload.indexOf("java.nio.HeapByteBuffer") > -1) {
+				return;
+			}
 			JSONObject jsonobject = new JSONObject(payload);
 			Message message = new Message(jsonobject.toString());
 			String username = getUsernameFromSession(webSocketSession);
@@ -67,30 +72,30 @@ public class MyHandler implements WebSocketHandler {
 			if (message.getCounterpart() != null && message.getCommand() != null) {
 				switch (message.getCommand()) {
 				case MessageKey.ENTER_COMMAND:
-					sendMessageToRoomUsers(message.getRoomId(),
-							new TextMessage("【" + username + "】加入了房間，歡迎！"));
+					this.sendMessageToRoomUsers(message.getRoomId(), new TextMessage("【" + username + "】加入了房間，歡迎！"));
 					break;
 				case MessageKey.MESSAGE_COMMAND:
 					//廣播所有房間所有用戶
 					if (message.getCounterpart().equals("-1")) {
 						this.sendMessageToAllUsers(
 								new TextMessage(username + "廣播：" + message.getInfo()));
+					//對該房間所有用戶	
 					} else if (message.getCounterpart().equals("all")) {
-						sendMessageToRoomUsers(message.getRoomId(),
+						this.sendMessageToRoomUsers(message.getRoomId(),
 								new TextMessage(username + "說：" + message.getInfo()));
+					//只對該用戶	
 					} else {
-						sendMessageToUser(message.getRoomId(), username, message.getCounterpart(),
+						this.sendMessageToRoomUser(message.getRoomId(), username, message.getCounterpart(),
 								new TextMessage(username + "悄悄對" + message.getCounterpart() + "說：" + message.getInfo()));
 					}
 					break;
 				case MessageKey.USERS_OF_ROOM_COMMAND:
 					Map<String, WebSocketSession> usersMap = roomAndUsersMap.get(message.getRoomId());
 					Set<String> users = usersMap.keySet();
-					sendMessageToRoomUsers(message.getRoomId(), new TextMessage("頻道:" + message.getRoomId() + "，目前用戶共有:" + users));
+					this.sendMessageToRoomUsers(message.getRoomId(), new TextMessage("頻道:" + message.getRoomId() + "，目前用戶共有:" + users));
 					break;
 				case MessageKey.LEAVE_COMMAND:
-					sendMessageToRoomUsers(message.getRoomId(),
-							new TextMessage("【" + getUsernameFromSession(webSocketSession) + "】離開了房間。"));
+					this.sendMessageToRoomUsers(message.getRoomId(), new TextMessage("【" + username + "】離開了房間。"));
 					break;
 				default:
 					break;
@@ -107,11 +112,15 @@ public class MyHandler implements WebSocketHandler {
 	 * @author charles
 	 * @date 2019年7月10日 上午10:24:45
 	 */
-	public boolean sendMessageToUser(String roomId, String username, String counterpart, TextMessage message) {
+	public boolean sendMessageToRoomUser(String roomId, String username, String counterpart, TextMessage message) {
 		if (roomId == null || counterpart == null)
 			return false; // 沒有給房間號
 		if (roomAndUsersMap.get(roomId) == null)
 			return false; // 該房間號不存在
+		WebSocketSession session2 = roomAndUsersMap.get(roomId).get(counterpart);
+		if (session2 == null)
+			return false; //該房間沒有該用戶
+		
 		//除了密頻的對象要發送外，本身發處訊息的用戶也要發送
 		Set<String> names = new HashSet<>();
 		names.add(username);
@@ -183,8 +192,8 @@ public class MyHandler implements WebSocketHandler {
 	}
 
 	/**
-	 * 離開房間時的處理
-	 * 
+	 * 關閉連接時的處理
+	 * 當呼叫ws.close()時會調用此方法
 	 * @author charles
 	 * @date 2019年7月10日 上午10:50:04
 	 */
@@ -197,9 +206,14 @@ public class MyHandler implements WebSocketHandler {
 		}
 	}
 
+	/**
+	 * 當呼叫ws.error()時會調用此方法
+	 * @author charles
+	 * @date 2019年7月10日 上午10:50:04
+	 */
 	@Override
 	public void handleTransportError(WebSocketSession webSocketSession, Throwable throwable) throws Exception {
-		System.out.println("連接出錯");
+		System.out.println("連接出錯:" + throwable);
 		if (webSocketSession.isOpen()) {
 			webSocketSession.close();
 		}

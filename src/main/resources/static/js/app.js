@@ -17,7 +17,8 @@ function lockOff(){
 }
 
 function ToggleConnectionClicked() {
-	var ip = '127.0.0.1';
+	var ip = '127.0.0.1:8080';
+	//var ip = '172.28.10.148:80';
     if (SocketCreated && (ws.readyState == 0 || ws.readyState == 1)) {
         lockOn("離開聊天室...");
         SocketCreated = false;
@@ -39,12 +40,12 @@ function ToggleConnectionClicked() {
             if ("WebSocket" in window) {
                 ws = new WebSocket(
                     //'ws://localhost:8080/webSocket/INFO={"command":"enter","name":"'+ gname + '","roomId":"' + groom + '"}');
-					'ws://' + ip + ':8080/webSocket?username=' + gname + '&roomId=' + groom);
+					'ws://' + ip + '/webSocket?username=' + gname + '&roomId=' + groom);
             }
             else if("MozWebSocket" in window) {
                 ws = new MozWebSocket(
 				//'ws://localhost:8080/webSocket/INFO={"command":"enter","name":"'+ gname + '","roomId":"' + groom + '"}');
-				'ws://' + ip + ':8080/webSocket?username=' + gname + '&roomId=' + groom);
+				'ws://' + ip + '/webSocket?username=' + gname + '&roomId=' + groom);
             }
             SocketCreated = true;
             isUserloggedout = false;
