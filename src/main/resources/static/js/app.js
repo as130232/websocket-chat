@@ -17,8 +17,8 @@ function lockOff(){
 }
 
 function ToggleConnectionClicked() {
-	var ip = '127.0.0.1:8080';
-	//var ip = '172.28.10.148:80';
+	//var ip = '127.0.0.1:8080';
+	var ip = '172.28.10.148:8080';
     if (SocketCreated && (ws.readyState == 0 || ws.readyState == 1)) {
         lockOn("離開聊天室...");
         SocketCreated = false;
@@ -138,28 +138,3 @@ $(document).ready(function () {
         }
     })
 });
-
-
-function testUserApiClicked(){
-	var param = {
-	  "ip": "string",
-	  "name": "user1",
-	  "password": "123456"
-	};
-	let result = [];
-    $.ajax({
-        url: "http://172.28.10.148/user/login",
-        type: "POST",
-		dataType: "json",
-        data: param,
-        async: false,
-        success: function (data) {
-            result = data.result;
-        },
-        error: function () {
-            alert("user login failed");
-        }
-     });
-	console.log(result);
-
-}
