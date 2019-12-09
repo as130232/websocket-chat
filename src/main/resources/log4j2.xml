@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<configuration packages="com.inno.innochat.log" >
+    <properties>
+        <!-- 文件输出格式 -->
+        <Property name="someProp">${bundle:servicename}</Property>
+        <property name="PATTERN">%d{yyyy-MM-dd HH:mm:ss} | serviceName [${application:servicename}] |  | TeadID  %tid | %-5level [%thread] %c [%L] | %msg%n</property>
+        <property name="fileName" >forGitproject/inno-chat/spring_log</property>
+        <property name="logTest" >forGitproject/inno-chat/test_log</property>
+
+    </properties>
+
+    <appenders>
+        <Console name="CONSOLE" target="system_out">
+            <PatternLayout pattern="${PATTERN}" />
+        </Console>
+
+        <RollingRandomAccessFile name="errorFile" fileName="${application:servicename}/web-error.log" immediateFlush="false" filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.web-error.gz">
+            <PatternLayout pattern="Time %d{yyyy-MM-dd 'at' HH:mm:ss z}  Service [${application:servicename}] [ProcessName %t | %tid ]   Status %-5level  %logger{36} [info %l] [LineCod %L]  [PageName %c] [MethodName %M] - %msg%xEx%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="6" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="50 MB"/>
+            </Policies>
+            <!-- 只記錄error級別資訊 -->
+            <ThresholdFilter level="error" onMatch="ACCEPT" onMismatch="DENY"/>
+            <!-- 指定每天的最大壓縮包個數，預設7個，超過了會覆蓋之前的 -->
+            <DefaultRolloverStrategy max="50"/>
+        </RollingRandomAccessFile>
+
+        <RollingRandomAccessFile name="infoFile" fileName="${application:servicename}/web-info.log" immediateFlush="false" filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.web-info.gz">
+            <PatternLayout pattern="Time %d{yyyy-MM-dd 'at' HH:mm:ss z}  Service [${application:servicename}] [ProcessName %t | %tid]   Status %-5level  %logger{36} [info %l] [LineCod %L]  [PageName %c] [MethodName %M] - %msg%xEx%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="6" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="50 MB"/>
+            </Policies>
+            <!-- 只記錄info級別資訊 -->
+            <ThresholdFilter level="info" onMatch="ACCEPT" onMismatch="DENY"/>
+            <!-- 指定每天的最大壓縮包個數，預設7個，超過了會覆蓋之前的 -->
+            <DefaultRolloverStrategy max="50"/>
+        </RollingRandomAccessFile>
+
+        <RollingRandomAccessFile name="warnFile" fileName="${application:servicename}/web-warn.log" immediateFlush="false" filePattern="${fileGz}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.web-info.gz">
+            <PatternLayout pattern="Time %d{yyyy-MM-dd 'at' HH:mm:ss z}  Service [${application:servicename}] [ProcessName %t | %tid ]   Status %-5level  %logger{36} [info %l] [LineCod %L]  [PageName %c] [MethodName %M] - %msg%xEx%n "/>
+<!--            <PatternLayout pattern="%sn %d{yyyy/MM/dd HH:mm:ss,SSS} %r [%-6p] [%t] %c{3} %C{3}.%M(%F:%L) – %m%n"/>-->
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="6" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="50 MB"/>
+            </Policies>
+
+            <!-- 只記錄info級別資訊 -->
+            <ThresholdFilter level="warn" onMatch="ACCEPT" onMismatch="DENY"/>
+
+            <!-- 指定每天的最大壓縮包個數，預設7個，超過了會覆蓋之前的 -->
+            <DefaultRolloverStrategy max="50"/>
+        </RollingRandomAccessFile>
+
+        <!-- mongodbSetting -->
+        <NoSql name="mongoAppender">
+            <MongoDB databaseName="log4j" collectionName="LogUse${application:servicename}" server="${env:spring_log_mongodb_ip}" port="${env:spring_log_mongodb_port}" username=""  />
+            <ThresholdFilter level="error" onMatch="ACCEPT" onMismatch="DENY"/>
+        </NoSql>
+    </appenders>
+
+    <loggers>
+        <AsyncLogger name="com.inno.innochat" level="ALL" />
+        <AsyncRoot level="info" includeLocation="true">
+            <appenderref ref="CONSOLE" />
+            <AppenderRef ref="infoFile"/>
+            <AppenderRef ref="errorFile"/>
+            <AppenderRef ref="warnFile"/>
+            <!-- 輸出日誌到mongodb -->
+            <AppenderRef ref="mongoAppender"/>
+        </AsyncRoot>
+        <!--<AsyncRoot level="info" additivity="false">-->
+
+        <!--</AsyncRoot>-->
+    </loggers>
+</configuration>

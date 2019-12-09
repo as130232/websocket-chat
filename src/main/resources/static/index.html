@@ -10,10 +10,12 @@
             overflow: auto;
             border: 1px solid black;
         }
+
         .LockOff {
             display: none;
             visibility: hidden;
         }
+
         .LockOn {
             display: block;
             visibility: visible;
@@ -39,24 +41,24 @@
     <h1>Online Chatroom</h1>
     <br/>
     <div>
-		按下進入按鈕，會通過WebSocket發起一個到聊天瀏覽器的連接。
+        按下進入按鈕，會通過WebSocket發起一個到聊天瀏覽器的連接。
     </div>
-    	Room Number：<input type="text" id="roomId" value="1"/>
-    	Username：<input type="text" id="username" />
-		<button id='ToggleConnection' type="button" onclick='ToggleConnectionClicked();'>進入聊天室</button>
+    Channel：<input type="text" id="channel" value="1"/>
+    Account：<input type="text" id="account"/>
+    <button id='toggleConnection' type="button" onclick='toggleConnectionClicked();'>進入聊天室</button>
     <br/>
-	<button id='usersOfRoom' type="button" onclick='UsersOfRoomClicked();'>查詢該房間用戶</button>
     <br/>
-    <div id='LogContainer' class='container'></div>
+    <div>公告：<span id="announcement"></span></div>
+    <div id='logContainer' class='container'></div>
+    <div>聊天室在線人數：<span id="userCount">0</span></div>
     <br/>
-	<br/>
-    <div id='SendDataContainer'>
-    	To：<input type="text" id="DataToSendWho" size="20" value="all"/>
-    	Message：<input type="text" id="DataToSend" size="40" placeholder="input your message"/>
-        <button id='SendData' type="button" onclick='SendDataClicked();'>Send</button>
+    <div id='sendDataContainer'>
+        To：<input type="text" id="target" size="20" value=""/>
+        Message：<input type="text" id="content" size="40" placeholder="input your message"/>
+        <button id='sendData' type="button" onclick='sendDataClicked();'>Send</button>
     </div>
     <br/>
-	
+
 </form>
 </body>
 </html>

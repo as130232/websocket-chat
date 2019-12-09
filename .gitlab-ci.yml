@@ -1,0 +1,40 @@
+variables:
+  GITLAB_URL: "gitlab.innotech.org"
+  HEALTH_PATH: "health"
+
+stages:
+  - build
+  - deploy
+
+build:
+  stage: build
+  tags:
+    - backend-runner2
+  only:
+    - tags
+    - master
+    - dev
+    - stg
+  before_script:
+    - git clone git@${GITLAB_URL}:devops/scripts.git
+  script:
+    - bash ./scripts/build_backend.sh
+  after_script:
+    - test `docker ps | grep "${CI_PROJECT_NAME}-${CI_PROJECT_NAMESPACE}-${CI_COMMIT_REF_NAME}-${CI_COMMIT_SHORT_SHA}" | wc -l` -eq 1 && docker stop ${CI_PROJECT_NAME}-${CI_PROJECT_NAMESPACE}-${CI_COMMIT_REF_NAME}-${CI_COMMIT_SHORT_SHA}
+    - sudo chown -R gitlab-runner:gitlab-runner .
+
+deploy:
+  stage: deploy
+  tags:
+    - backend-runner2
+  only:
+    - tags
+    - master
+    - dev
+    - stg
+  before_script:
+    - git clone git@${GITLAB_URL}:devops/scripts.git
+  script:
+    - bash ./scripts/trigger.sh sports
+  after_script:
+    - sudo chown -R gitlab-runner:gitlab-runner .
